@@ -1,43 +1,36 @@
-import os
-from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, func
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
-
-load_dotenv()
-
-
-db_password = os.getenv("DB_PASSWORD")
-
-engine = create_engine(f"postgresql://postgres:{db_password}@localhost/courcces")
+engine = create_engine('postgresql://postgres:Limunik756900@localhost/electronics_store')
 
 Base = declarative_base()
+Session = sessionmaker(bind=engine)
+session = Session()
 
-
-class   Category(Base):
+class Category(Base):
     __tablename__ = 'category'
     
     id = Column(Integer, primary_key=True)
     name = Column(String)
 
-class   Product(Base):
+    products = relationship("Product", back_populates="category")
+
+class Product(Base):
     __tablename__ = 'product'
     
     id = Column(Integer, primary_key=True)
     name = Column(String)
     price = Column(Float)
     quantity = Column(Integer)
-    category_id = Column(Integer)
+    
+    category_id = Column(Integer, ForeignKey('category.id'))
 
-   
+    category = relationship("Category", back_populates="products")
+
 
 def create_tables():
     Base.metadata.create_all(engine)
 
-    
-Session = sessionmaker(bind=engine)
-
-session = Session()
 
 def add_category(name):
     category = Category(name=name)
@@ -58,6 +51,7 @@ def update_category(category_id, new_name):
     else:
         print(f"category was not found")
     return category
+
 def delete_category(category_id):
     category = session.get(Category, category_id)
     if category:
@@ -76,13 +70,13 @@ def add_product(name, price, quantity, category_id):
     return product
 
 def get_products():
-    return session.query().all()
+    return session.query(Product).all()
 
 def update_product(product_id = None, name= None, price= None, quantity= None, category_id= None):
     product = session.get(Product, product_id)
     if not product:
         print(f"product was not found")
-    return None
+        return None
 
     if name is not None:
         product.name = name
@@ -100,7 +94,7 @@ def update_product(product_id = None, name= None, price= None, quantity= None, c
 def delete_product(product_id):
     product = session.get(Product, product_id)
     if product:
-        product.delete(product)
+        session.delete(product)
         session.commit()
         print(f"the product was deleted")
     else:
